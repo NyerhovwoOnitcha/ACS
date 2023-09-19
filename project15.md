@@ -215,6 +215,15 @@ openssl req -newkey rsa:2048 -nodes -keyout /etc/pki/tls/private/ACS.key -x509 -
 ### Create the Application Load Balancers next, both the External and Internal
 When creating the Internal ALB you will set to set a rule to check for host headers and forward traffic to the appropriate target group.
 
+
+https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/148b278e-56cb-41ca-a4e5-72c4e8ebecd7
+
+
+
+
+https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/765648f3-006a-4471-834d-120c8b4529b2
+
+
 ### Next Create the launch Template and autoscaling group
 
 
