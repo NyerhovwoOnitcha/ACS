@@ -223,8 +223,106 @@ https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/148b278e-56cb-41ca-a4e5
 
 https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/765648f3-006a-4471-834d-120c8b4529b2
 
+![3-create INT ALB](./project15_images/3-create%20INT%20ALB.jpg)
 
-### Next Create the launch Template and autoscaling group
+### Next Create the launch Template and autoscaling group.
+- Create launch template for the Bastion server, then the Nginx servers and finally the webservers (both) using the respective AMI's created before. 
+- creating the launch template for the bastion server add the bootstrap text below
+```
+#!/bin/bash
+yum install -y mysql
+yum install -y git tmux
+yum install -y ansible
+```
+
+- The launch template for Nginx server add the bootstrap text below
+```
+#!/bin/bash
+yum install -y nginx
+systemctl start nginx
+systemctl enable nginx
+git clone https://github.com/NyerhovwoOnitcha/ACS-project-config.git
+mv ACS-project-config/reverse.conf /etc/nginx/
+mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf-distro
+cd /etc/nginx/
+touch nginx.conf
+sed -n 'w nginx.conf' reverse.conf
+systemctl restart nginx
+rm -rf reverse.conf
+rm -rf ACS-project-config
+``` 
+- creating the launch template for the wordpress server add the bootstrap text below
+
+```
+#!/bin/bash
+mkdir /var/www/
+sudo mount -t efs -o tls,accesspoint=fsap-0c70533c4f53656eb fs-032bc6a6ccf2c7769:/ /var/www/
+yum install -y httpd 
+systemctl start httpd
+systemctl enable httpd
+yum module reset php -y
+yum module enable php:remi-7.4 -y
+yum install -y php php-common php-mbstring php-opcache php-intl php-xml php-gd php-curl php-mysqlnd php-fpm php-json
+systemctl start php-fpm
+systemctl enable php-fpm
+wget http://wordpress.org/latest.tar.gz
+tar xzvf latest.tar.gz
+rm -rf latest.tar.gz
+cp wordpress/wp-config-sample.php wordpress/wp-config.php
+mkdir /var/www/html/
+cp -R /wordpress/* /var/www/html/
+cd /var/www/html/
+touch healthstatus
+sed -i "s/localhost/techzeus-rds.c5szxeahybda.us-east-1.rds.amazonaws.com/g" wp-config.php 
+sed -i "s/username_here/admin/g" wp-config.php 
+sed -i "s/password_here/cnl12345/g" wp-config.php 
+sed -i "s/database_name_here/wordpressdb/g" wp-config.php 
+chcon -t httpd_sys_rw_content_t /var/www/html/ -R
+systemctl restart httpd
+```
+
+- creating the launch template for the tooling server add the bootstrap text below
+```
+
+```
+#!/bin/bash
+mkdir /var/www/
+sudo mount -t efs -o tls,accesspoint=fsap-0cd54a2a333905325 fs-032bc6a6ccf2c7769:/ /var/www/
+yum install -y httpd 
+systemctl start httpd
+systemctl enable httpd
+yum module reset php -y
+yum module enable php:remi-7.4 -y
+yum install -y php php-common php-mbstring php-opcache php-intl php-xml php-gd php-curl php-mysqlnd php-fpm php-json
+systemctl start php-fpm
+systemctl enable php-fpm
+git clone https://github.com/NyerhovwoOnitcha/tooling.git
+mkdir /var/www/html
+cp -R /tooling-1/html/*  /var/www/html/
+cd /tooling-1
+mysql -h localhost/techzeus-rds.c5szxeahybda.us-east-1.rds.amazonaws.com -u admin -p toolingdb < tooling-db.sql
+cd /var/www/html/
+touch healthstatus
+sed -i "s/$db = mysqli_connect('mysql.tooling.svc.cluster.local', 'admin', 'admin', 'tooling');/$db = mysqli_connect('acs-database.cdqpbjkethv0.us-east-1.rds.amazonaws.com', 'admin', 'cnl12345', 'toolingdb');/g" functions.php
+chcon -t httpd_sys_rw_content_t /var/www/html/ -R
+systemctl restart httpd
+
+![launch templates](./project15_images/launch%20templates.jpg)
+
+### Next create the Autoscaling groups. First create an autoscaling group for the bastion and nginx server
+![asg1](./project15_images/asg1.jpg)
+
+### Now you need to ssh into your bastion and from your bastion ssh into the RDS Database and create both the wordpressdb and the toolingdb
+
+`mysql -h techzeus-rds.c5szxeahybda.us-east-1.rds.amazonaws.com -u admin -p`
+![login successful](./project15_images/login%20successful.jpg)
+
+![create databases](./project15_images/create%20databases.jpg)
+
+### Create ASG for wordpress and tooling server
+![asg2](./project15_images/asg2.jpg)
+
+### Go back to route 53 and create A records to forward traffic to the External LoadBalancer
 
 
 
