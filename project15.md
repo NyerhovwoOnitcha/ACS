@@ -325,6 +325,10 @@ systemctl restart httpd
 ### Go back to route 53 and create A records to forward traffic to the External LoadBalancer
 
 
+https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/851a3d8b-c40b-4e14-8f5a-07cb08e3a1a8
+
+
+
 
 
 
