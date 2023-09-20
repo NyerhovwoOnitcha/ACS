@@ -347,6 +347,11 @@ https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/851a3d8b-c40b-4e14-8f5a
 
 ### Finally test your set up, ensure that the main domain for the WordPress website can be reached, and the subdomain for Tooling website can also be reached using a browser
 
+
+https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/f967fc49-d35b-4d27-b31a-f6ff075c6585
+
+
+
 You have just created a secured, scalable and cost-effective infrastructure to host 2 enterprise websites using various Cloud services from AWS. At this point, your infrastructure is ready to host real websites’ load
 
 
