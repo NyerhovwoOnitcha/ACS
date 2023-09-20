@@ -84,7 +84,7 @@ A rule for MySQL/aurora for the webservers is made
  ![create efs1](./project15_images/create%20efs1.jpg)
  ![create efs2](./project15_images/create%20efs2.jpg)
 
- ### After creating the file systems, create access points, this is what the webservers mounts to the EFS with. Create 2 access points as you have 2 different websites
+ ### After creating the file systems, create access points, this is what the webservers mounts to the EFS with. Create 2 access points as you have 2 different webservers, i.e wordpress and tooling
  ![FS accesspoint](/project15_images/FS%20access%20point.jpg)
 
  ### Next Create your RDS, before creating your RDS you first need to create a KMS key from the KMS store and a subnet rule.
@@ -189,6 +189,21 @@ setsebool -P httpd_can_network_connect_db=1
 setsebool -P httpd_execmem=1
 setsebool -P httpd_use_nfs 1
 ```
+
+```
+git clone https://github.com/aws/efs-utils
+
+cd efs-utils
+
+yum install -y make
+
+yum install -y rpm-build
+
+make rpm 
+
+yum install -y  ./build/amazon-efs-utils*rpm
+```
+
 ### The webserver will host the websites using apache, so set up self-sogned certificate for the apache  webserver instance
 ```
 yum install -y mod_ssl
@@ -196,14 +211,14 @@ yum install -y mod_ssl
 openssl req -newkey rsa:2048 -nodes -keyout /etc/pki/tls/private/ACS.key -x509 -days 365 -out /etc/pki/tls/certs/ACS.crt
 
 ```
-### For Nginx you specify the configuration in the `reverse.conf` file, but for apache, you edit the ssl/conf file. Look for the section where you specify the certificate path and the ssl key path
+### For Nginx you specify the certificate configuration in the `reverse.conf` file, but for apache, you edit the ssl/conf file. Look for the section where you specify the certificate path and the ssl key path
 `vi /etc/httpd/conf.d/ssl.conf`
 ![EDIT SSL CONF](./project15_images/EDIT%20SSL%20CONF.jpg)
 
 ### Create images from the 3 instances
 ![ami's created](./project15_images/ami's%20created.jpg)
 
-## Now create Target groups for the ALB. From the project diagram you can see that we have 3 sets of Target groups, the Nginx Target Group, the Wordpress server target groups and the Tooling server Target Groups. Thus you will be creating 2 target groups
+## Now create Target groups for the ALB. From the project diagram you can see that we have 3 sets of Target groups, the Nginx Target Group, the Wordpress server target groups and the Tooling server Target Groups. Thus you will be creating 3 target groups
 - Select Instances as the target type
 - Ensure the protocol HTTPS on secure TLS port 443
 - Ensure that the health check path is /healthstatus
@@ -213,7 +228,7 @@ openssl req -newkey rsa:2048 -nodes -keyout /etc/pki/tls/private/ACS.key -x509 -
 ![target groups](./project15_images/target%20groups.jpg)
 
 ### Create the Application Load Balancers next, both the External and Internal
-When creating the Internal ALB you will set to set a rule to check for host headers and forward traffic to the appropriate target group.
+- When creating the Internal ALB you will set to set a rule to check for host headers and forward traffic to the appropriate target group.
 
 
 https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/148b278e-56cb-41ca-a4e5-72c4e8ebecd7
@@ -256,7 +271,7 @@ rm -rf ACS-project-config
 ```
 #!/bin/bash
 mkdir /var/www/
-sudo mount -t efs -o tls,accesspoint=fsap-0c70533c4f53656eb fs-032bc6a6ccf2c7769:/ /var/www/
+sudo mount -t efs -o tls,accesspoint=fsap-013515d0ca22b72ad fs-0c06b16d6bc639286:/ /var/www/
 yum install -y httpd 
 systemctl start httpd
 systemctl enable httpd
@@ -273,7 +288,7 @@ mkdir /var/www/html/
 cp -R /wordpress/* /var/www/html/
 cd /var/www/html/
 touch healthstatus
-sed -i "s/localhost/techzeus-rds.c5szxeahybda.us-east-1.rds.amazonaws.com/g" wp-config.php 
+sed -i "s/localhost/database-1.c5szxeahybda.us-east-1.rds.amazonaws.com/g" wp-config.php 
 sed -i "s/username_here/admin/g" wp-config.php 
 sed -i "s/password_here/cnl12345/g" wp-config.php 
 sed -i "s/database_name_here/wordpressdb/g" wp-config.php 
@@ -283,11 +298,9 @@ systemctl restart httpd
 
 - creating the launch template for the tooling server add the bootstrap text below
 ```
-
-```
 #!/bin/bash
 mkdir /var/www/
-sudo mount -t efs -o tls,accesspoint=fsap-0cd54a2a333905325 fs-032bc6a6ccf2c7769:/ /var/www/
+sudo mount -t efs -o tls,accesspoint=fsap-09da47e007947145f fs-0c06b16d6bc639286:/ /var/www/
 yum install -y httpd 
 systemctl start httpd
 systemctl enable httpd
@@ -306,6 +319,7 @@ touch healthstatus
 sed -i "s/$db = mysqli_connect('mysql.tooling.svc.cluster.local', 'admin', 'admin', 'tooling');/$db = mysqli_connect('acs-database.cdqpbjkethv0.us-east-1.rds.amazonaws.com', 'admin', 'cnl12345', 'toolingdb');/g" functions.php
 chcon -t httpd_sys_rw_content_t /var/www/html/ -R
 systemctl restart httpd
+```
 
 ![launch templates](./project15_images/launch%20templates.jpg)
 
@@ -313,6 +327,8 @@ systemctl restart httpd
 ![asg1](./project15_images/asg1.jpg)
 
 ### Now you need to ssh into your bastion and from your bastion ssh into the RDS Database and create both the wordpressdb and the toolingdb
+
+`mysql -h <database end point> -u <database admin name> -p`
 
 `mysql -h techzeus-rds.c5szxeahybda.us-east-1.rds.amazonaws.com -u admin -p`
 ![login successful](./project15_images/login%20successful.jpg)
@@ -329,8 +345,9 @@ https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/851a3d8b-c40b-4e14-8f5a
 
 
 
+### Finally test your set up, ensure that the main domain for the WordPress website can be reached, and the subdomain for Tooling website can also be reached using a browser
 
-
+You have just created a secured, scalable and cost-effective infrastructure to host 2 enterprise websites using various Cloud services from AWS. At this point, your infrastructure is ready to host real websites’ load
 
 
 
