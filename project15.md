@@ -29,6 +29,8 @@
 - Your webservers will be using the EFS to serve their content and storing data in database managed by RDS.
 
 ### Create a VPC, edit VPC settings and enable DNS hostnames.
+The DNS hostnames attribute determines whether instances launched in the VPC receive public DNS hostnames that correspond to their public IP addresses.
+
 ![](./project15_images/edit%20VPC%20settings.jpg)
 ![](./project15_images/edit%20VPC%20settings2.jpg)
 
@@ -78,6 +80,14 @@ A rule for MySQL/aurora for the webservers is made
 ### Now that the seurity groups are created, get to creating the resources in your Infrastructure, create a certificate, an EFS and RDS.
 
 ### Go create a certificate
+- use a wildcard when inputing your domain name:
+
+```
+*.techzeus.shop
+```
+- Use `DNS vaildation`
+
+- Create a record in route 53
 ![](./project15_images/certificate.jpg)
  
  ### Create your filesystem, set the mount targets to the specific subnets where your webservers will be located, in this case private subnet 1 and 2
@@ -97,9 +107,11 @@ A rule for MySQL/aurora for the webservers is made
 
  ### Create the database with MySQL engine
 
- ### Next you need to create an ami to be used in creating the launch template. create 3 redhat instances: a webserver, a bastion and nginx
+
+ ### Next you need to create an ami to be used in creating the LAUNCH TEMPLATES. create 3 redhat instances: a webserver, a bastion and nginx
  ![ami's](./project15_images/amis.jpg)
  
+
  ## PREPARE THE BASTION SERVER AMI
 
  ### Bastion ami installation
@@ -107,9 +119,9 @@ A rule for MySQL/aurora for the webservers is made
  ```
  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 
-yum install -y https://dl.fedoraproject.org/pub/epel/epel-next-release-latest-9.noarch.rpm
+sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-next-release-latest-9.noarch.rpm
 
-yum install -y dnf-utils http://rpms.remirepo.net/enterprise/remi-release-9.rpm
+sudo yum install -y dnf-utils http://rpms.remirepo.net/enterprise/remi-release-9.rpm
 
 yum install wget vim python3 telnet htop git mysql net-tools chrony -y
 
@@ -155,7 +167,17 @@ make rpm
 
 yum install -y  ./build/amazon-efs-utils*rpm
 ```
+
+### Set up a self-signed certificate for the apache  instance
+
+```
+r
+openssl req -newkey rsa:2048 -nodes -keyout /etc/pki/tls/private/ACS.key -x509 -days -out /etc/pki/tls/certs/ACS.crt
+vi /etc/httpd/conf.d/ssl/conf
+```
+
 ### set up a self-signed certificate for the nginx instance
+
 ```
 sudo mkdir /etc/ssl/private
 
@@ -179,8 +201,8 @@ yum install -y dnf-utils http://rpms.remirepo.net/enterprise/remi-release-9.rpm
 
 yum install wget vim python3 telnet htop git mysql net-tools chrony -y
 
-systemctl start chronyd
-systemctl enable chronyd
+sudo systemctl start chronyd
+sudo systemctl enable chronyd
 
 ### configure selinux policies for the webservers and nginx servers to function properly
 ```
@@ -211,7 +233,7 @@ yum install -y mod_ssl
 openssl req -newkey rsa:2048 -nodes -keyout /etc/pki/tls/private/ACS.key -x509 -days 365 -out /etc/pki/tls/certs/ACS.crt
 
 ```
-### For Nginx you specify the certificate configuration in the `reverse.conf` file, but for apache, you edit the ssl/conf file. Look for the section where you specify the certificate path and the ssl key path
+#### For Nginx you specify the certificate configuration in the `reverse.conf` file, but for apache, you edit the ssl/conf file. Look for the section where you specify the certificate path and the ssl key path
 `vi /etc/httpd/conf.d/ssl.conf`
 ![EDIT SSL CONF](./project15_images/EDIT%20SSL%20CONF.jpg)
 
@@ -229,6 +251,12 @@ openssl req -newkey rsa:2048 -nodes -keyout /etc/pki/tls/private/ACS.key -x509 -
 
 ### Create the Application Load Balancers next, both the External and Internal
 - When creating the Internal ALB you will set to set a rule to check for host headers and forward traffic to the appropriate target group.
+
+The host header condition value should be:
+```
+tooling.techzeus.shop 
+www.tooling.techzeus.shop
+```
 
 
 https://github.com/NyerhovwoOnitcha/ACS/assets/101157174/148b278e-56cb-41ca-a4e5-72c4e8ebecd7
@@ -252,7 +280,7 @@ yum install -y ansible
 
 - The launch template for Nginx server add the bootstrap text below
 ```
-#!/bin/bash
+#!/bin/bash 
 yum install -y nginx
 systemctl start nginx
 systemctl enable nginx
