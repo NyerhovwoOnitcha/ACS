@@ -1,5 +1,6 @@
 ## Userdata used in the wordpress server launch template
 
+```
 #!/bin/bash
 mkdir /var/www/
 sudo mount -t efs -o tls,accesspoint=fsap-013515d0ca22b72ad fs-0c06b16d6bc639286:/ /var/www/
@@ -25,3 +26,4 @@ sed -i "s/password_here/cnl12345/g" wp-config.php
 sed -i "s/database_name_here/wordpressdb/g" wp-config.php 
 chcon -t httpd_sys_rw_content_t /var/www/html/ -R
 systemctl restart httpd
+```
