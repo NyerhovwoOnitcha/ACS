@@ -1,4 +1,5 @@
 ## Userdata used in the nginx server launch template
+```
 #!/bin/bash
 yum install -y nginx
 systemctl start nginx
@@ -12,3 +13,4 @@ sed -n 'w nginx.conf' reverse.conf
 systemctl restart nginx
 rm -rf reverse.conf
 rm -rf ACS-project-config
+```
